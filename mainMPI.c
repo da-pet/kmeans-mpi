@@ -25,7 +25,10 @@
  * Configuração 3: 4 processos MPI sem threads OpenMP
  * Comando: export OMP_NUM_THREADS=1; mpirun -np 4 ./mainMPI ...
  * Resultado:
- *   [Adicionar resultados aqui após execução]
+ *   Precision of k-means clustering = 0.42516
+ *   Time for k-means clustering = 37m27s
+ *   MPI processes = 4, OpenMP threads = 4
+ *   real: 16m57.350s  user: 16m43.485s  sys: 0m17.954s
  *
  */
 #include <stdio.h>
