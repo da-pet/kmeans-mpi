@@ -25,7 +25,7 @@
  * Configuração 3: 4 processos MPI sem threads OpenMP
  * Comando: export OMP_NUM_THREADS=1; mpirun -np 4 ./mainMPI ...
  * Resultado:
- *   MPI processes = 4, OpenMP threads = 4
+ *   MPI processes = 4, OpenMP threads = 1
  *   real: 37m27s
  *
  */
