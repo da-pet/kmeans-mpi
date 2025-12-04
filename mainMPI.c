@@ -1,33 +1,7 @@
 /*
  * K-Means Clustering - Versão Híbrida MPI/OpenMP
  * 
- * Esta implementação combina MPI para distribuição de dados entre processos
- * e OpenMP para paralelização dentro de cada processo.
  * 
- * TEMPOS DE EXECUÇÃO (dataset covertype: 581012 instâncias, 54 características, 7 clusters):
- *
- * Configuração 1: 1 processo MPI com 4 threads OpenMP
- * Comando: export OMP_NUM_THREADS=4; mpirun -np 1 ./mainMPI ...
- * Resultado:
- *   Precision of k-means clustering = 0.42261
- *   Time for k-means clustering = 3.820257 s
- *   MPI processes = 1, OpenMP threads = 4
- *   real: 8m21.149s  user: 8m21.969s  sys: 0m0.512s
- *
- * Configuração 2: 2 processos MPI com 2 threads OpenMP cada
- * Comando: export OMP_NUM_THREADS=2; mpirun -np 2 ./mainMPI ...
- * Resultado:
- *   Precision of k-means clustering = 0.42516
- *   Time for k-means clustering = 9.600044 s
- *   MPI processes = 2, OpenMP threads = 2
- *   real: 16m57.350s  user: 16m43.485s  sys: 0m17.954s
- *
- * Configuração 3: 4 processos MPI sem threads OpenMP
- * Comando: export OMP_NUM_THREADS=1; mpirun -np 4 ./mainMPI ...
- * Resultado:
- *   MPI processes = 4, OpenMP threads = 1
- *   real: 37m27s
- *
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -113,7 +87,62 @@ void fscanf_splitting(const char *fn, int *y, const int n) {
     fclose(fl);
 }
 
+
+//nossa versao do getprecison()
 double get_precision(int *x, int *y, const int n) {
+    
+    int max_x = 0, max_y = 0;
+    for (int i = 0; i < n; ++i) {
+        if (x[i] > max_x) max_x = x[i];
+        if (y[i] > max_y) max_y = y[i];
+    }
+    int rows = max_x + 1; // Classes reais
+    int cols = max_y + 1; // Clusters encontrados
+
+    
+    unsigned long **counts = (unsigned long**)calloc(rows, sizeof(unsigned long*));
+    for(int i=0; i<rows; i++) counts[i] = (unsigned long*)calloc(cols, sizeof(unsigned long));
+
+   
+    for (int i = 0; i < n; ++i) {
+        counts[x[i]][y[i]]++;
+    }
+
+   
+    unsigned long yy = 0;  
+    unsigned long yy_plus_ny = 0; 
+
+    
+    for (int j = 0; j < cols; ++j) {
+        unsigned long total_in_cluster = 0;
+        
+        
+        for (int i = 0; i < rows; ++i) {
+            unsigned long count = counts[i][j];
+            total_in_cluster += count;
+            
+            
+            if (count > 1) {
+                yy += (count * (count - 1)) / 2;
+            }
+        }
+        
+        // Total de pares formados neste cluster
+        if (total_in_cluster > 1) {
+            yy_plus_ny += (total_in_cluster * (total_in_cluster - 1)) / 2;
+        }
+    }
+
+    // Limpeza
+    for(int i=0; i<rows; i++) free(counts[i]);
+    free(counts);
+
+    // Retorna precisão: (Verdadeiros Positivos) / (Todos Preditos como Positivos)
+    return yy_plus_ny == 0 ? 0.0 : (double)yy / (double)yy_plus_ny;
+}
+
+//versao antiga
+/*double get_precision(int *x, int *y, const int n) {
     unsigned long yy = 0ul, ny = 0ul;
     int i, j;
     for (i = 0; i < n; ++i) {
@@ -123,7 +152,7 @@ double get_precision(int *x, int *y, const int n) {
         }
     }
     return yy == 0ul && ny == 0ul ? 0.0 : (double)yy / (double)(yy + ny);
-}
+}*/
 
 double get_distance(const double *x1, const double *x2, int m) {
     double d, r = 0.0;
@@ -167,7 +196,7 @@ char constr(const int *y, const int val, int s) {
 
 void det_cores(const double* const x, double* const c, const int n, const int m, const int k) {
     int *nums = (int*)malloc(k * sizeof(int));
-    srand((unsigned int)time(NULL));
+    //srand((unsigned int)time(NULL));
     int i;
     for (i = 0; i < k; ++i) {
         int val = rand() % n;
@@ -336,6 +365,8 @@ int main(int argc, char **argv) {
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+    unsigned int seed = 123;          
+    srand(seed);
     
     if (argc < 6) {
         if (rank == 0) puts("Not enough parameters...");
