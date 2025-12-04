@@ -1,0 +1,29 @@
+TP2:
+compilar OMP_GPU:
+gcc8 -O3 -fopenmp -foffload=nvptx-none main_omp_gpu.c -o omp_gpu -lm
+
+
+rodar:
+time ./omp_gpu ./datasets/covertype/data.txt 581012 54 7 ./datasets/covertype/new_result.txt ./datasets/covertype/res.txt
+
+nvprof --metrics warp_execution_efficiency,achieved_occupancy,eligible_warps_per_cycle,stall_memory_dependency,sm_activity,executed_ipc ./omp_gpu ./datasets/covertype/data.txt 581012 54 7 ./datasets/covertype/new_result.txt ./datasets/covertype/res.txt
+
+----------------------------------------------------------------
+compilar CUDA:
+nvcc -O3 -arch=sm_61 cuda_debug.cu -o cudad -lm
+
+rodar:
+time ./cudad ./datasets/covertype/data.txt 581012 54 7 ./datasets/covertype/new_result.txt ./datasets/covertype/res.txt
+
+nvprof   --metrics ipc,sm_efficiency,warp_execution_efficiency,achieved_occupancy,eligible_warps_per_cycle,stall_memory_dependency,inst_executed,shared_load_transactions,shared_store_transactions,global_load_transactions,global_store_transactions   ./cudad ./datasets/covertype/data.txt 581012 54 7 ./datasets/covertype/new_result.txt ./datasets/covertype/res.txt
+
+
+
+
+
+
+
+
+
+
+{
